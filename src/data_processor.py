@@ -8,10 +8,24 @@ import re
 
 def _clean_question(text):
     """Strip trailing special chars and normalize Well-being hyphenation."""
+    if pd.isna(text):
+        return ""
     text = str(text).strip()
     text = re.sub(r'[^a-zA-Z0-9\s\.\?\!\"\'\,\;\:\-\(\)]+$', '', text).strip()
     text = text.replace('Wellbeing', 'Well-being').replace('Well being', 'Well-being')
-    return text
+    return text or "Unnamed Question"
+
+
+def _make_unique_labels(labels):
+    """Ensure each label is unique to avoid duplicate DataFrame columns."""
+    seen = {}
+    unique = []
+    for label in labels:
+        base = label or "Unnamed Question"
+        count = seen.get(base, 0) + 1
+        seen[base] = count
+        unique.append(base if count == 1 else f"{base} [{count}]")
+    return unique
 
 class SurveyDataProcessor:
     """Processes survey data and calculates all metrics"""
@@ -26,15 +40,13 @@ class SurveyDataProcessor:
         raw_categories = self.df.iloc[0, 1:].values
         raw_questions = self.df.iloc[1, 1:].values
         self.categories = [_clean_question(c) if pd.notna(c) else c for c in raw_categories]
-        self.questions = [_clean_question(q) for q in raw_questions]
+        cleaned_questions = [_clean_question(q) for q in raw_questions]
+        self.questions = _make_unique_labels(cleaned_questions)
 
         # Get response data
         self.responses = self.df.iloc[2:, :].copy()
-        self.responses.columns = ['Role'] + list(raw_questions)
-        # Rename columns to match cleaned question names
-        rename_map = {raw: clean for raw, clean in zip(raw_questions, self.questions)}
-        self.responses.rename(columns=rename_map, inplace=True)
-        self.questions = list(self.questions)
+        # Use unique cleaned questions directly as column names.
+        self.responses.columns = ['Role'] + list(self.questions)
 
         # Remove "Overall Average" row
         self.responses = self.responses[
@@ -55,6 +67,19 @@ class SurveyDataProcessor:
         print(f"✓ Roles: {', '.join(self.roles)}")
         print(f"✓ Categories: {', '.join(self.category_map.keys())}")
         print(f"✓ Questions: {len(self.questions)}")
+
+    def _get_numeric_series(self, data, question):
+        """Return a numeric Series for a question, even if duplicate columns exist."""
+        if question not in data.columns:
+            return None
+
+        values = data[question]
+
+        # Defensive handling in case duplicate columns still slip through.
+        if isinstance(values, pd.DataFrame):
+            return values.apply(pd.to_numeric, errors='coerce').mean(axis=1, skipna=True)
+
+        return pd.to_numeric(values, errors='coerce')
     
     def get_category_questions(self, category):
         """Get all questions for a specific category"""
@@ -72,8 +97,8 @@ class SurveyDataProcessor:
         
         averages = {}
         for question in questions:
-            if question in data.columns:
-                values = pd.to_numeric(data[question], errors='coerce')
+            values = self._get_numeric_series(data, question)
+            if values is not None:
                 averages[question] = values.mean()
         
         return averages
@@ -90,8 +115,8 @@ class SurveyDataProcessor:
         
         percent_agree = {}
         for question in questions:
-            if question in data.columns:
-                values = pd.to_numeric(data[question], errors='coerce')
+            values = self._get_numeric_series(data, question)
+            if values is not None:
                 agree_count = ((values == 4) | (values == 5)).sum()
                 total_count = values.notna().sum()
                 percent_agree[question] = (agree_count / total_count * 100) if total_count > 0 else 0
@@ -108,7 +133,9 @@ class SurveyDataProcessor:
         if question not in data.columns:
             return {'disagree': 0, 'neutral': 0, 'agree': 0}
         
-        values = pd.to_numeric(data[question], errors='coerce')
+        values = self._get_numeric_series(data, question)
+        if values is None:
+            return {'disagree': 0, 'neutral': 0, 'agree': 0}
         total = values.notna().sum()
         
         if total == 0:
@@ -123,4 +150,3 @@ class SurveyDataProcessor:
     def get_all_categories(self):
         """Return list of all categories"""
         return list(self.category_map.keys())
-

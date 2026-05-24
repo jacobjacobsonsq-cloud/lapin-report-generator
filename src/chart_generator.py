@@ -261,6 +261,8 @@ class ChartGenerator:
     def create_scatter_plot(self, role=None):
         """9-quadrant scatter plot (High Performing Teams matrix)"""
         fig, ax = plt.subplots(figsize=(7, 5))
+        fig.patch.set_facecolor(COLORS['ivory'])
+        ax.set_facecolor(COLORS['ivory'])
         
         # Hardcoded question mappings
         standards_questions = [
@@ -312,8 +314,8 @@ class ChartGenerator:
                 x_vals.append(np.mean(standards_scores))
                 y_vals.append(np.mean(psych_scores))
         
-        # Background shading (correct color: #A3BDEE)
-        ax.axhspan(1, 5, facecolor='#A3BDEE', alpha=1, zorder=0)
+        # Background shading
+        ax.axhspan(1, 5, facecolor=COLORS['ivory'], alpha=1, zorder=0)
         
         # Add zone division lines (ONLY within grid, not through border)
         ax.plot([1, 5], [3.67, 3.67], color=COLORS['navy'], linewidth=2, alpha=0.8, zorder=1)

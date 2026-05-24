@@ -17,7 +17,7 @@ COLORS = {
     'dark_gray': '#8B9197',
 }
 
-SCATTER_BG = '#A3BDEE'
+SCATTER_BG = '#F7F5F2'
 
 STANDARDS_QUESTIONS = [
     "We have a can-do attitude.",
@@ -94,6 +94,8 @@ class ScatterPlotGenerator:
     def create(self, role=None):
         """Generate the 9-quadrant High Performing Teams scatter plot."""
         fig, ax = plt.subplots(figsize=(8, 3.2))
+        fig.patch.set_facecolor(SCATTER_BG)
+        ax.set_facecolor(SCATTER_BG)
 
         x_vals, y_vals = self._get_person_scores(role)
 
