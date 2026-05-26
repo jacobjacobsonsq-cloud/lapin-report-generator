@@ -315,7 +315,7 @@ class ChartGenerator:
                 y_vals.append(np.mean(psych_scores))
         
         # Background shading
-        ax.axhspan(1, 5, facecolor=COLORS['ivory'], alpha=1, zorder=0)
+        ax.axhspan(1, 5, facecolor='#A3BDEE', alpha=1, zorder=0)
         
         # Add zone division lines (ONLY within grid, not through border)
         ax.plot([1, 5], [3.67, 3.67], color=COLORS['navy'], linewidth=2, alpha=0.8, zorder=1)

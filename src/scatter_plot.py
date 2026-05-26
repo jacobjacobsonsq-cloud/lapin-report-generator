@@ -17,7 +17,8 @@ COLORS = {
     'dark_gray': '#8B9197',
 }
 
-SCATTER_BG = '#F7F5F2'
+SCATTER_BG = '#A3BDEE'
+SCATTER_OUTER_BG = '#F7F5F2'
 
 STANDARDS_QUESTIONS = [
     "We have a can-do attitude.",
@@ -94,13 +95,16 @@ class ScatterPlotGenerator:
     def create(self, role=None):
         """Generate the 9-quadrant High Performing Teams scatter plot."""
         fig, ax = plt.subplots(figsize=(8, 3.2))
-        fig.patch.set_facecolor(SCATTER_BG)
-        ax.set_facecolor(SCATTER_BG)
+        fig.patch.set_facecolor(SCATTER_OUTER_BG)
+        ax.set_facecolor(SCATTER_OUTER_BG)
 
         x_vals, y_vals = self._get_person_scores(role)
 
-        # --- Background fill for entire bordered area (including tick numbers) ---
-        ax.fill_between([0.82, 5.20], 0.62, 5.20, facecolor=SCATTER_BG, alpha=1.0, zorder=0)
+        # --- Cream outer frame area (including numeric tick area) ---
+        ax.fill_between([0.82, 5.20], 0.62, 5.20, facecolor=SCATTER_OUTER_BG, alpha=1.0, zorder=0)
+
+        # --- Blue matrix area (actual 1-5 graph) ---
+        ax.fill_between([1.00, 5.00], 1.00, 5.00, facecolor=SCATTER_BG, alpha=1.0, zorder=0.5)
 
         # --- Grid division lines (contained within 1-5) ---
         for y in [2.33, 3.67]:
@@ -167,7 +171,7 @@ class ScatterPlotGenerator:
 
         buf = BytesIO()
         fig.savefig(buf, format='png', dpi=150, bbox_inches=None,
-                    facecolor='#F7F5F2', edgecolor='none')
+                    facecolor=SCATTER_OUTER_BG, edgecolor='none')
         buf.seek(0)
         plt.close(fig)
         return buf
