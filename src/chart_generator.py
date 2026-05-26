@@ -77,6 +77,36 @@ class ChartGenerator:
             label.set_fontname('Ginto Normal Light')
             label.set_color(COLORS['navy'])
 
+    def _role_rank(self, role):
+        name = str(role).lower()
+        if "slt" in name:
+            return 0
+        if "director" in name or "direct manager" in name or "manager" in name:
+            return 1
+        if "team" in name:
+            return 2
+        return 999
+
+    def _role_display_label(self, role):
+        name = str(role).lower()
+        if "slt" in name:
+            return "SLT"
+        if "director" in name or "direct manager" in name or "manager" in name:
+            return "Director"
+        if "team" in name:
+            return "Team Member"
+        return str(role)
+
+    def _role_color(self, role):
+        rank = self._role_rank(role)
+        if rank == 0:
+            return COLORS['navy']
+        if rank == 1:
+            return COLORS['blue']
+        if rank == 2:
+            return COLORS['dark_gray']
+        return COLORS['light_navy']
+
     def create_stacked_bar(self, questions, role=None):
         """Stacked bar chart (Disagree/Neutral/Agree) - FIXED FORMATTING"""
         fig, ax = plt.subplots(figsize=(12, 6))
@@ -156,16 +186,27 @@ class ChartGenerator:
         fig, ax = plt.subplots(figsize=(12, 6))
         
         ax.set_facecolor(COLORS['ivory'])
-        # Use exact brand colors for lines (darkest = navy on top)
-        role_colors = [COLORS['dark_gray'], COLORS['blue'], COLORS['navy']]
-        
-        for i, role in enumerate(reversed(self.processor.roles)):
+        ordered_roles = (
+            self.processor.get_ordered_roles()
+            if hasattr(self.processor, "get_ordered_roles")
+            else sorted(self.processor.roles, key=lambda r: (self._role_rank(r), str(r)))
+        )
+        plot_roles = list(reversed(ordered_roles))
+        role_handles = {}
+
+        for role in plot_roles:
             percent_agree = self.processor.calculate_percent_agree(questions, role)
             values = [percent_agree.get(q, 0) for q in questions]
             
-            ax.plot(range(len(questions)), values, marker='o', linewidth=2,
-                   markersize=4, color=role_colors[i % len(role_colors)], 
-                   label=f'{role} Agree')
+            line, = ax.plot(
+                range(len(questions)),
+                values,
+                marker='o',
+                linewidth=2,
+                markersize=4,
+                color=self._role_color(role),
+            )
+            role_handles[role] = line
         
         ax.set_ylim(0, 105)
         ax.set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
@@ -177,9 +218,19 @@ class ChartGenerator:
         wrapped_labels = ['\n'.join(textwrap.wrap(q, 18)) for q in questions]
         ax.set_xticklabels(wrapped_labels, fontsize=11, color=COLORS['navy'])
 
-        # Legend at bottom center — lowered to clear multi-line labels
-        ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.30),
-                 ncol=3, frameon=False, fontsize=11)
+        # Legend at bottom center — ordered as SLT, Director, Team Member
+        legend_roles = [r for r in ordered_roles if r in role_handles]
+        legend_handles = [role_handles[r] for r in legend_roles]
+        legend_labels = [f'{self._role_display_label(r)} Agree' for r in legend_roles]
+        ax.legend(
+            legend_handles,
+            legend_labels,
+            loc='lower center',
+            bbox_to_anchor=(0.5, -0.30),
+            ncol=3,
+            frameon=False,
+            fontsize=11,
+        )
         
         ax.grid(axis='y', alpha=0.3, linestyle='--')
         ax.spines['top'].set_visible(False)

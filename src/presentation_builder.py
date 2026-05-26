@@ -28,6 +28,16 @@ class PresentationBuilder:
         self.logo_lockup_gray = os.path.join(assets_path, 'logos', 'Lapin_LogoLockup_RGB_DarkGray.png')
         self.logo_symbol_white = os.path.join(assets_path, 'logos', 'Lapin_Symbol_RGB_White.png')
         self.logo_symbol_navy = os.path.join(assets_path, 'logos', 'Lapin_Symbol_RGB_Navy.png')
+
+    def _get_ordered_categories(self):
+        if hasattr(self.processor, "get_ordered_categories"):
+            return self.processor.get_ordered_categories()
+        return self.processor.get_all_categories()
+
+    def _get_ordered_roles(self):
+        if hasattr(self.processor, "get_ordered_roles"):
+            return self.processor.get_ordered_roles()
+        return list(self.processor.roles)
     
     def _add_logo(self, slide, logo_path, left, top, height):
         """Add logo to slide if file exists"""
@@ -109,7 +119,7 @@ class PresentationBuilder:
         title_p.font.color.rgb = RGBColor(255, 255, 255)
         
         # Content with proper wrapping
-        categories = self.processor.get_all_categories()
+        categories = self._get_ordered_categories()
         category_bullets = '\n    • '.join(categories)
 
         content = f"""Questions focused on five key dimensions that comprise the Lapin Performance Index:
@@ -304,7 +314,7 @@ class PresentationBuilder:
         # SECTION 2: CATEGORY OVERVIEW (Slides 3-32)
         # Pattern: Divider + Multi-line + Overall dist + 3 role dists = 6 slides per category
         # ===================================================================
-        categories = self.processor.get_all_categories()
+        categories = self._get_ordered_categories()
         
         print("\n" + "="*60)
         print("SECTION 2: CATEGORY OVERVIEW")
@@ -338,7 +348,7 @@ class PresentationBuilder:
             slide_count += 1
             
             # 4-6. Distribution for each role (THIS WAS MISSING!)
-            for role in self.processor.roles:
+            for role in self._get_ordered_roles():
                 print(f"[{slide_count}] {role}: {category} Distribution")
                 chart = self.chart_gen.create_stacked_bar(questions, role)
                 self.add_chart_slide(f'{role}: {category} Distribution', chart, slide_count)
@@ -368,7 +378,7 @@ class PresentationBuilder:
         print("SECTIONS 4-6: ROLE DEEP DIVES")
         print("="*60)
         
-        for role in self.processor.roles:
+        for role in self._get_ordered_roles():
             print(f"\n{'='*60}")
             print(f"ROLE: {role} (19 slides)")
             print('='*60)
@@ -443,7 +453,7 @@ class PresentationBuilder:
         self.add_section_divider("High Performing Teams")
         slide_count += 1
 
-        for role in self.processor.roles:
+        for role in self._get_ordered_roles():
             print(f"[{slide_count}] High Performing Teams – {role}")
             chart = self.scatter_gen.create(role)
             self.add_chart_slide(f'High Performing Teams – {role}', chart, slide_count,

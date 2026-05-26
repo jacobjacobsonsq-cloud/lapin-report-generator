@@ -29,6 +29,14 @@ def _make_unique_labels(labels):
 
 class SurveyDataProcessor:
     """Processes survey data and calculates all metrics"""
+
+    CATEGORY_ORDER = [
+        "Communication",
+        "Inspiration",
+        "Performance",
+        "Culture",
+        "Well-being",
+    ]
     
     def __init__(self, filepath):
         """Load and parse survey data from Excel"""
@@ -150,3 +158,30 @@ class SurveyDataProcessor:
     def get_all_categories(self):
         """Return list of all categories"""
         return list(self.category_map.keys())
+
+    def get_ordered_categories(self):
+        """Return categories in the preferred report order."""
+        categories = self.get_all_categories()
+        order_lookup = {name.lower(): idx for idx, name in enumerate(self.CATEGORY_ORDER)}
+
+        def _key(category):
+            idx = order_lookup.get(str(category).lower())
+            return (idx if idx is not None else 999, str(category))
+
+        return sorted(categories, key=_key)
+
+    def get_ordered_roles(self):
+        """Return roles in preferred legend/report order: SLT, Director, Team Member."""
+        roles = list(self.roles)
+
+        def _rank(role):
+            name = str(role).lower()
+            if "slt" in name:
+                return 0
+            if "director" in name or "direct manager" in name or "manager" in name:
+                return 1
+            if "team" in name:
+                return 2
+            return 999
+
+        return sorted(roles, key=lambda r: (_rank(r), str(r)))
